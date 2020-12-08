@@ -57,11 +57,10 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect("/urls/");
 });
 
-// app.post("/urls/:id", (req, res) => {
-//   delete urlDatabase[req.params.id];
-//   urlDatabase
-//   res.redirect("/urls/");
-// });
+app.post("/urls/:shortURL", (req, res) => {
+  urlDatabase[req.params.shortURL] = req.body.editURL; //req.body ---> whatever is in the form we can access it
+  res.redirect("/urls/");
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
