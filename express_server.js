@@ -57,8 +57,8 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect("/urls/");
 });
 
-app.post("/urls/:shortURL", (req, res) => {
-  urlDatabase[req.params.shortURL] = req.body.editURL; //req.body ---> whatever is in the form we can access it
+app.post("/urls/:id", (req, res) => {
+  urlDatabase[req.params.id] = req.body.editURL; //req.body ---> whatever is in the form we can access it
   res.redirect("/urls/");
 });
 
