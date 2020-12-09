@@ -5,7 +5,7 @@ const PORT = 3000; // default port 8080
 app.set("view engine", "ejs");
 
 const bodyParser = require("body-parser");
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 
@@ -14,21 +14,21 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-let users = { 
+let users = {
   "userRandomID": {
-    id: "userRandomID", 
-    email: "user@example.com", 
+    id: "userRandomID",
+    email: "user@example.com",
     password: "purple-monkey-dinosaur"
   },
- "user2RandomID": {
-    id: "user2RandomID", 
-    email: "user2@example.com", 
+  "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
     password: "dishwasher-funk"
   }
 };
 
 function generateRandomString() {
-  const str = Math.random().toString(36).substr(2,6);
+  const str = Math.random().toString(36).substr(2, 6);
   return str;
 }
 
@@ -42,12 +42,41 @@ function emailLookup(emailId) {
   return flag;
 }
 
+function emailPasswordLookup(emailId, password) {
+  let flag = false;
+  for (const key in users) {
+    if (users[key].email === emailId && users[key].password === password) {
+      setCookie(users[key].id);
+      flag = true;
+    }
+  }
+  return flag;
+}
+
+function setCookie(emailId, password) {
+  let cookie = undefined;
+  for (const key in users) {
+    if (users[key].email === emailId && users[key].password === password) {
+      cookie = users[key].id;
+    }
+  }
+  return cookie;
+}
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
+});
+
+app.get("/login", (req, res) => {
+  const templateVars = { user: undefined };
+  if (req.cookies["user_id"]) {
+    templateVars.user = users[req.cookies["user_id"]];
+  }
+  res.render("urls_login", templateVars);
 });
 
 app.get("/register", (req, res) => {
@@ -70,7 +99,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { user: undefined};
+  const templateVars = { user: undefined };
   if (req.cookies["user_id"]) {
     templateVars.user = users[req.cookies["user_id"]];
   }
@@ -112,8 +141,13 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie("username", req.body.username);
-  res.redirect("/urls/");
+  if (emailPasswordLookup(req.body.email, req.body.password)) {
+    res.cookie("user_id", setCookie(req.body.email, req.body.password));
+    res.redirect("/urls/");
+  } else {
+    res.statusCode = 403;
+    res.send("403");
+  }
 });
 
 app.post("/logout", (req, res) => {
@@ -123,21 +157,22 @@ app.post("/logout", (req, res) => {
 
 app.post("/register", (req, res) => {
   const randomId = generateRandomString();
-  if (req.body.email || req.body.password || emailLookup(req.body.email)) {
+  if (!req.body.email || !req.body.password || emailLookup(req.body.email)) {
     res.statusCode = 400;
     res.send("400");
-  }
-  const newUser = {
-    [randomId]: {
-      id: randomId,
-      email: req.body.email,
-      password: req.body.password
+  } else {
+    const newUser = {
+      [randomId]: {
+        id: randomId,
+        email: req.body.email,
+        password: req.body.password
+      }
     }
+    users = { ...users, ...newUser };
+    res.cookie("user_id", randomId);
+    console.log(users);
+    res.redirect("/urls/");
   }
-  users = {...users, ...newUser};
-  res.cookie("user_id", randomId);
-  //console.log(users);
-  res.redirect("/urls/");
 });
 
 app.listen(PORT, () => {
