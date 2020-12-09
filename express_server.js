@@ -102,8 +102,10 @@ app.get("/urls/new", (req, res) => {
   const templateVars = { user: undefined };
   if (req.cookies["user_id"]) {
     templateVars.user = users[req.cookies["user_id"]];
+    res.render("urls_new", templateVars);
+  } else {
+    res.redirect("/login");
   }
-  res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
@@ -170,7 +172,6 @@ app.post("/register", (req, res) => {
     }
     users = { ...users, ...newUser };
     res.cookie("user_id", randomId);
-    console.log(users);
     res.redirect("/urls/");
   }
 });
