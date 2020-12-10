@@ -1,12 +1,12 @@
 const express = require("express");
+const bodyParser = require("body-parser");
+const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
 const app = express();
 const PORT = 3000; // default port 8080
 
 app.set("view engine", "ejs");
-
-const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
-const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 
 const urlDatabase = {
@@ -19,12 +19,12 @@ let users = {
   "aJ48lW": {
     id: "aJ48lW",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur"
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
   },
   "hhj90T": {
     id: "hhj90T",
     email: "user2@example.com",
-    password: "dishwasher-funk"
+    password: bcrypt.hashSync("dishwasher-funk", 10)
   }
 };
 
@@ -117,6 +117,7 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  console.log(req.cookies["user_id"]);
   if (urlsForUser(req.cookies["user_id"])) {
     const templateVars = {
       user: users[req.cookies["user_id"]],
@@ -152,6 +153,7 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
+  console.log(urlDatabase[req.params.shortURL]);
   const longU = urlDatabase[req.params.shortURL].longURL;
   console.log(longU);
   res.redirect(longU);
@@ -160,7 +162,7 @@ app.get("/u/:shortURL", (req, res) => {
 app.post("/urls", (req, res) => {
   let longUrl = req.body.longURL;
   let shortUrl = generateRandomString();
-  urlDatabase[shortUrl].longURL = longUrl;
+  urlDatabase[shortUrl] = {longURL: longUrl, userID: req.cookies["user_id"]};
   res.redirect(`/urls/${shortUrl}`);
 });
 
@@ -184,7 +186,7 @@ app.post("/urls/:id", (req, res) => {
 
 app.post("/login", (req, res) => {
   let newUser = Object.values(emailLookup(req.body.email))[0];
-  if (newUser.password === req.body.password) {
+  if (bcrypt.compareSync(req.body.password, newUser.password)) {
     res.cookie("user_id", newUser.id);
     res.redirect("/urls/");
   } else {
@@ -213,7 +215,7 @@ app.post("/register", (req, res) => {
       [randomId]: {
         id: randomId,
         email: req.body.email,
-        password: req.body.password
+        password: bcrypt.hashSync(req.body.password, 10)
       }
     }
     users = { ...users, ...newUser };
