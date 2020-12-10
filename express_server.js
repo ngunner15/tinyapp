@@ -34,35 +34,49 @@ function generateRandomString() {
 }
 
 function emailLookup(emailId) {
-  let flag = false;
+  let user = {};
   for (const key in users) {
     if (users[key].email === emailId) {
-      flag = true;
+      user[key] = users[key];
     }
   }
-  return flag;
+  if (Object.keys(user).length === 0) {
+    return false;
+  } else {
+    return user;
+  }
 }
 
-function emailPasswordLookup(emailId, password) {
-  let flag = false;
-  for (const key in users) {
-    if (users[key].email === emailId && users[key].password === password) {
-      setCookie(users[key].id);
-      flag = true;
-    }
-  }
-  return flag;
-}
+// function emailLookup(emailId) {
+//   let flag = false;
+//   for (const key in users) {
+//     if (users[key].email === emailId) {
+//       flag = true;
+//     }
+//   }
+//   return flag;
+// }
 
-function setCookie(emailId, password) {
-  let cookie = undefined;
-  for (const key in users) {
-    if (users[key].email === emailId && users[key].password === password) {
-      cookie = users[key].id;
-    }
-  }
-  return cookie;
-}
+// function emailPasswordLookup(emailId, password) {
+//   let flag = false;
+//   for (const key in users) {
+//     if (users[key].email === emailId && users[key].password === password) {
+//       setCookie(users[key].id);
+//       flag = true;
+//     }
+//   }
+//   return flag;
+// }
+
+// function setCookie(emailId, password) {
+//   let cookie = undefined;
+//   for (const key in users) {
+//     if (users[key].email === emailId && users[key].password === password) {
+//       cookie = users[key].id;
+//     }
+//   }
+//   return cookie;
+// }
 
 function urlsForUser(id) {
   let newDatabase = {};
@@ -155,8 +169,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
     delete urlDatabase[req.params.shortURL];
     res.redirect("/urls/");
   } else {
-    res.statusCode = 403;
-    res.send("Log in first");
+    res.status(403).send("Log in first!!!");
   }
 });
 
@@ -165,19 +178,25 @@ app.post("/urls/:id", (req, res) => {
     urlDatabase[req.params.id].longURL = req.body.editURL; //req.body ---> whatever is in the form we can access it
     res.redirect("/urls/");
   } else {
-    res.statusCode = 403;
-    res.send("Log in first");
+    res.status(403).send("Log in first!!!");
   }
 });
 
 app.post("/login", (req, res) => {
-  if (emailPasswordLookup(req.body.email, req.body.password)) {
-    res.cookie("user_id", setCookie(req.body.email, req.body.password));
+  let newUser = Object.values(emailLookup(req.body.email))[0];
+  if (newUser.password === req.body.password) {
+    res.cookie("user_id", newUser.id);
     res.redirect("/urls/");
   } else {
-    res.statusCode = 403;
-    res.send("403");
+    res.status(403).send("Check your password or email again!!!");
   }
+  // if (emailPasswordLookup(req.body.email, req.body.password)) {
+  //   res.cookie("user_id", setCookie(req.body.email, req.body.password));
+  //   res.redirect("/urls/");
+  // } else {
+  //   res.statusCode = 403;
+  //   res.send("403");
+  // }
 });
 
 app.post("/logout", (req, res) => {
@@ -188,8 +207,7 @@ app.post("/logout", (req, res) => {
 app.post("/register", (req, res) => {
   const randomId = generateRandomString();
   if (!req.body.email || !req.body.password || emailLookup(req.body.email)) {
-    res.statusCode = 400;
-    res.send("400");
+    res.status(400).send("password or email cannot be empty!!!");
   } else {
     const newUser = {
       [randomId]: {
@@ -199,6 +217,7 @@ app.post("/register", (req, res) => {
       }
     }
     users = { ...users, ...newUser };
+    console.log(users);
     res.cookie("user_id", randomId);
     res.redirect("/urls/");
   }
