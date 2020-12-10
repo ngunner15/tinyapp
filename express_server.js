@@ -125,7 +125,7 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  if (urlsForUser(req.cookies["user_id"]).shortURL) {
+  if (urlsForUser(req.cookies["user_id"])[req.params.shortURL]) {
     const templateVars = {
       user: users[req.cookies["user_id"]],
       shortURL: req.params.shortURL,
@@ -151,13 +151,23 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect("/urls/");
+  if (urlsForUser(req.cookies["user_id"])[req.params.shortURL]) {
+    delete urlDatabase[req.params.shortURL];
+    res.redirect("/urls/");
+  } else {
+    res.statusCode = 403;
+    res.send("Log in first");
+  }
 });
 
 app.post("/urls/:id", (req, res) => {
-  urlDatabase[req.params.id].longURL = req.body.editURL; //req.body ---> whatever is in the form we can access it
-  res.redirect("/urls/");
+  if (urlsForUser(req.cookies["user_id"])[req.params.id]) {
+    urlDatabase[req.params.id].longURL = req.body.editURL; //req.body ---> whatever is in the form we can access it
+    res.redirect("/urls/");
+  } else {
+    res.statusCode = 403;
+    res.send("Log in first");
+  }
 });
 
 app.post("/login", (req, res) => {
