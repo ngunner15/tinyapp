@@ -107,19 +107,26 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  const templateVars = { user: undefined };
   if (req.session.user_id) {
-    templateVars.user = users[req.session.user_id];
-  }
-  res.render("urls_login", templateVars);
+    res.redirect("/urls");
+  } else {
+    const templateVars = { user: users[req.session.user_id] };
+    res.render("urls_login", templateVars);
+  } 
 });
 
 app.get("/register", (req, res) => {
-  const templateVars = { user: undefined };
+  // const templateVars = { user: undefined };
+  // if (req.session.user_id) {
+  //   templateVars.user = users[req.session.user_id];
+  // }
+  // res.render("urls_registration", templateVars);
   if (req.session.user_id) {
-    templateVars.user = users[req.session.user_id];
-  }
-  res.render("urls_registration", templateVars);
+    res.redirect("/urls");
+  } else {
+    const templateVars = { user: users[req.session.user_id] };
+    res.render("urls_registration", templateVars);
+  } 
 });
 
 app.get("/urls", (req, res) => {
@@ -131,7 +138,7 @@ app.get("/urls", (req, res) => {
     };
     res.render("urls_index", templateVars);
   } else {
-    res.send("Log in first");
+    res.send("Login to view the urls page.");
   }
 });
 
@@ -214,8 +221,10 @@ app.post("/logout", (req, res) => {
 
 app.post("/register", (req, res) => {
   const randomId = generateRandomString();
-  if (!req.body.email || !req.body.password || emailLookup(req.body.email)) {
+  if (!req.body.email || !req.body.password) {
     res.status(400).send("password or email cannot be empty!!!");
+  }else if (emailLookup(req.body.email)) {
+    res.status(400).send("Cannot register with duplicate email!!!");
   } else {
     const newUser = {
       [randomId]: {
