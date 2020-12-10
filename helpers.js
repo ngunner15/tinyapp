@@ -1,4 +1,4 @@
-function emailLookup(email, database) {
+const getUserByEmail = function(email, database) {
   let user = {};
   for (const key in database) {
     if (database[key].email === email) {
@@ -6,13 +6,13 @@ function emailLookup(email, database) {
     }
   }
   if (Object.keys(user).length === 0) {
-    return false;
+    return undefined;
   } else {
     return user;
   }
-}
+};
 
-function urlsForUser(id, database) {
+const urlsForUser = function(id, database) {
   let newDatabase = {};
   for (const key in database) {
     if (database[key].userID === id) {
@@ -24,11 +24,11 @@ function urlsForUser(id, database) {
   } else {
     return newDatabase;
   }
-}
+};
 
-function generateRandomString() {
+const generateRandomString = function() {
   const str = Math.random().toString(36).substr(2, 6);
   return str;
-}
+};
 
-module.exports = { emailLookup, urlsForUser, generateRandomString };
+module.exports = { getUserByEmail, urlsForUser, generateRandomString };
