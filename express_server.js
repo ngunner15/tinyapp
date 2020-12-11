@@ -6,20 +6,28 @@ const { getUserByEmail } = require('./helpers');
 const { urlsForUser } = require('./helpers');
 const { generateRandomString } = require('./helpers');
 
-const app = express();
 const PORT = 3000;
 
+const app = express();
+
+// Setting ejs as the template engine
 app.set("view engine", "ejs");
+
 app.use(bodyParser.urlencoded({ extended: true }));
+
 app.use(cookieSession({
   name: 'session',
   keys: ['b6d0e7eb-8c4b-4ae4-8460-fd3a08733dcb', '1fb2d767-ffbf-41a6-98dd-86ac2da9392e'],
 }));
 
+// Static css files are being served from the public folder
+app.use(express.static('public'));
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
+// In memory database
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
   i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" },
@@ -42,37 +50,42 @@ let users = {
 app.get("/", (req, res) => {
   if (req.session.user_id) {
     res.redirect("/urls");
+  } else {
+    const templateVars = { user: users[req.session.user_id] };
+    res.render("urls_login", templateVars);
   }
-  const templateVars = { user: users[req.session.user_id] };
-  res.render("urls_login", templateVars);
 });
 
 app.get("/login", (req, res) => {
+  const templateVars = { user: undefined };
   if (req.session.user_id) {
     res.redirect("/urls");
+  } else {
+    const templateVars = { user: users[req.session.user_id] };
+    res.render("urls_login", templateVars);
   }
-  const templateVars = { user: users[req.session.user_id] };
-  res.render("urls_login", templateVars);
 });
 
 app.get("/register", (req, res) => {
   if (req.session.user_id) {
     res.redirect("/urls");
+  } else {
+    const templateVars = { user: users[req.session.user_id] };
+    res.render("urls_registration", templateVars);
   }
-  const templateVars = { user: users[req.session.user_id] };
-  res.render("urls_registration", templateVars);
 });
 
 app.get("/urls", (req, res) => {
-  console.log(req.session.user_id);
   if (req.session.user_id) {
     const templateVars = {
       user: users[req.session.user_id],
       urls: urlsForUser(req.session.user_id, urlDatabase)
     };
     res.render("urls_index", templateVars);
+  } else {
+    res.send("<h1>Login to view the urls page.</h1>");
   }
-  res.send("<h1>Login to view the urls page.</h1>");
+  
 });
 
 app.get("/urls/new", (req, res) => {
@@ -80,11 +93,15 @@ app.get("/urls/new", (req, res) => {
   if (req.session.user_id) {
     templateVars.user = users[req.session.user_id];
     res.render("urls_new", templateVars);
+  } else {
+    res.redirect("/login");
   }
-  res.redirect("/login");
 });
 
 app.get("/urls/:shortURL", (req, res) => {
+  if (!urlDatabase.hasOwnProperty([req.params.shortURL])) {
+    res.send("<h1>URL not found in the database!!!</h1>");
+  }
   if (urlsForUser(req.session.user_id, urlDatabase)[req.params.shortURL]) {
     const templateVars = {
       user: users[req.session.user_id],
@@ -93,14 +110,19 @@ app.get("/urls/:shortURL", (req, res) => {
     };
     res.render("urls_show", templateVars);
   } else if (req.session.user_id) {
-    res.send("<h1>That URL is not in your database!!!</h1>");
+    res.send("<h1>That URL is not in your list!!!</h1>");
+  } else {
+    res.send("<h1>Log in first!!!</h1>");
   }
-  res.send("<h1>Log in first!!!</h1>");
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  const longU = urlDatabase[req.params.shortURL].longURL;
-  res.redirect(longU);
+  if (urlDatabase.hasOwnProperty([req.params.shortURL])) {
+    const longU = urlDatabase[req.params.shortURL].longURL;
+    res.redirect(longU);
+  } else {
+    res.status(403).send("<h1>This URL is not in the database.</h1>");
+  }
 });
 
 app.post("/urls", (req, res) => {
@@ -111,36 +133,45 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
+  if (!req.session.user_id) {
+    res.status(403).send("Log in first!!!");
+  }
   if (urlsForUser(req.session.user_id, urlDatabase)[req.params.shortURL]) {
     delete urlDatabase[req.params.shortURL];
     res.redirect("/urls/");
+  } else {
+    res.status(403).send("You cannot delete this URL as it is not in your list.");
   }
-  res.status(403).send("<h1>Log in first!!!</h1>");
 });
 
 app.post("/urls/:id", (req, res) => {
+  if (!req.session.user_id) {
+    res.status(403).send("Log in first!!!");
+  }
   if (urlsForUser(req.session.user_id, urlDatabase)[req.params.id]) {
     urlDatabase[req.params.id].longURL = req.body.editURL; //req.body ---> whatever is in the form we can access it
     res.redirect("/urls/");
+  } else {
+    res.status(403).send("This URL is not in your list.");
   }
-  res.status(403).send("<h1>Log in first!!!</h1>");
 });
 
 app.post("/login", (req, res) => {
   if (!getUserByEmail(req.body.email, users)) { // redirects to /register if not in the users object.
-    res.redirect("/register");
+    return res.redirect("/register");
   }
   let newUser = Object.values(getUserByEmail(req.body.email, users))[0];
   if (bcrypt.compareSync(req.body.password, newUser.password)) {
     req.session["user_id"] = newUser.id;
     res.redirect("/urls/");
+  } else {
+    res.status(403).send("<h1>Incorrect password or email again!!!</h1>");
   }
-  res.status(403).send("<h1>Incorrect password or email again!!!</h1>");
 });
 
 app.post("/logout", (req, res) => {
   req.session = null;
-  res.redirect("/login");
+  res.redirect("/urls/");
 });
 
 app.post("/register", (req, res) => {
@@ -158,7 +189,6 @@ app.post("/register", (req, res) => {
       }
     };
     users = { ...users, ...newUser };
-    console.log(users);
     req.session["user_id"] = randomId;
     res.redirect("/urls/");
   }
