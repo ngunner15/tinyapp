@@ -57,11 +57,11 @@ app.get("/", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  const templateVars = { user: undefined };
+  let templateVars = { user: undefined };
   if (req.session.user_id) {
     res.redirect("/urls");
   } else {
-    const templateVars = { user: users[req.session.user_id] };
+    templateVars = { user: users[req.session.user_id] };
     res.render("urls_login", templateVars);
   }
 });
