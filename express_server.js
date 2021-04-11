@@ -23,7 +23,7 @@ app.use(cookieSession({
 // Static css files are being served from the public folder
 app.use(express.static('public'));
 
-app.listen(PORT, () => {
+app.listen(process.env.PORT || PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
